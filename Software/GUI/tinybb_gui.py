@@ -75,14 +75,13 @@ class SerialThread(QObject):
         self.statusTextSignal.emit('Connecting')
         self.name = config['port']
         self.instance = serial.Serial(self.name, baudrate=500000, timeout=1)  # + param
-        if config['type']:
+        if int(config['type']):
             self.statusTextSignal.emit('Switching to Passthrough')
             print('===== Betaflight CLI mode =====')
             self.instance.write(b'#\n')
             self.instance.readline()
-            request_str = 'serialpassthrough ' + \
-                          str(config['uart'] - 1) + ' ' + \
-                          str(500000) + '\n'
+            uart_name = 'UART' + str(int(config['uart']))
+            request_str = 'serialpassthrough ' + uart_name + ' 500000\n'
             self.instance.write(request_str.encode())
             while True:
                 res = self.instance.readline()

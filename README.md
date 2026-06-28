@@ -44,7 +44,7 @@ Type `get blackbox_disable` in CLI to see all the available options.
 <img src="Images/modes.png" width="700" />
 
 ## Read recorded logs
-1) Download application on [Releases](https://github.com/alexeystn/tiny-blackbox/releases) page: "exe" for Windows, "app" for macOS.
+1) Download application on [Releases](https://github.com/djek88/tiny-blackbox/releases/latest) page: "exe" for Windows, "app" for macOS.
 2) Connect flight controller to PC.
 3) Hold hardware button for 1 second to switch into Read mode (double blinks).
 4) Open application, configure connection parameters and press "Connect".

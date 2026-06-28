@@ -74,24 +74,49 @@ class SerialThread(QObject):
     def connectToPort(self, config):
         self.statusTextSignal.emit('Connecting')
         self.name = config['port']
-        self.instance = serial.Serial(self.name, baudrate=500000, timeout=1)  # + param
-        if int(config['type']):
-            self.statusTextSignal.emit('Switching to Passthrough')
-            print('===== Betaflight CLI mode =====')
-            self.instance.write(b'#\n')
-            self.instance.readline()
-            uart_name = 'UART' + str(int(config['uart']))
-            request_str = 'serialpassthrough ' + uart_name + ' 500000\n'
-            self.instance.write(request_str.encode())
-            while True:
-                res = self.instance.readline()
-                if len(res) == 0:
-                    break
-                s = res.decode().strip()
-                if len(s) > 0:
-                    print(' >> ' + s)
-            print('===============================')
-        self.getInfo()
+
+        try:
+            self.instance = serial.Serial(self.name, baudrate=500000, timeout=1)  # + param
+
+            if int(config['type']):
+                self.statusTextSignal.emit('Switching to Passthrough')
+                print('===== Betaflight CLI mode =====')
+                self.instance.write(b'#\n')
+                self.instance.readline()
+                uart_name = 'UART' + str(int(config['uart']))
+                request_str = 'serialpassthrough ' + uart_name + ' 500000\n'
+                self.instance.write(request_str.encode())
+                while True:
+                    res = self.instance.readline()
+                    if len(res) == 0:
+                        break
+                    s = res.decode(errors='replace').strip()
+                    if len(s) > 0:
+                        print(' >> ' + s)
+                print('===============================')
+
+            self.getInfo()
+
+        except (serial.SerialException, OSError) as e:
+            print('Connection error:', repr(e))
+
+            if self.instance is not None:
+                try:
+                    if self.instance.is_open:
+                        self.instance.close()
+                except Exception:
+                    pass
+
+            self.instance = None
+            self.progressValueSignal.emit(0)
+            self.progressTextSignal.emit('')
+            self.setConnectionStatus(False)
+
+            error_text = str(e).lower()
+            if 'busy' in error_text or 'resource busy' in error_text or 'permission' in error_text:
+                self.statusTextSignal.emit('Port busy - close Betaflight Configurator')
+            else:
+                self.statusTextSignal.emit('Connection failed')
 
     def getInfo(self):
         self.instance.flushInput()
@@ -189,7 +214,15 @@ class SerialThread(QObject):
                 old_version = True
 
     def disconnectFromPort(self):
-        self.instance.close()
+        if self.instance is not None:
+            try:
+                if self.instance.is_open:
+                    self.instance.close()
+            except Exception as e:
+                print('Disconnect error:', repr(e))
+            finally:
+                self.instance = None
+
         self.statusTextSignal.emit('Disconnected')
         self.progressTextSignal.emit('')
         self.progressValueSignal.emit(0)
